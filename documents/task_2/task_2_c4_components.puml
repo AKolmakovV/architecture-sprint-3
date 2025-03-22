@@ -1,0 +1,115 @@
+@startuml
+
+title "С4 Компоненты - Умный дом"
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Person(user, "Пользователь", "Владелец умного дома")
+
+Enterprise_Boundary(smartHome, "Экосистема Умного Дома") {
+
+    Container(ui, "Веб-приложение", "JavaScript/HTML/CSS", "Позволяет пользователям управлять системой")
+    Container(apiGateway, "API Gateway", "Kong Gateway", "Авторизация, кеширование, маршрутизация запросов")
+
+    Container_Boundary(devicesService, "DevicesService", "Java", "API Для взаимодействия с датчиками и умными устройствами") #319439 {
+        Component(deviceComponent, "DeviceComponent", "Java", "Устройство умного дома")
+
+        Component(deviceTypesComponent, "DeviceTypesComponent", "Java", "Тип устройства")
+        Component(deviceSettingsComponent, "DeviceSettingsComponent", "Java", "Параметры устройства")
+        Component(uomComponent, "UOMComponent", "Java", "Единицы измерения")
+
+        Component(deviceDriverComponent, "DeviceDriver", "Java", "Драйвера для доступа и управления устройствами")
+        
+        ContainerDb_Ext(devicesDb, "Devices DB", "PostgreSQL", "Хранение информации об устройствах")
+    }
+    
+    Container_Boundary(telemetryService, "TelemetryService", "Java", "Сервис мониторинга и телеметрии")  #319439 {
+        Component(timeSeriesComponent, "TimeSeriesComponent", "Java", "Исторические данные")
+        Component(telemetrySettingsComponent, "TelemetrySettingsComponent", "Java", "Допустимые значения устройств")
+
+        ContainerDb_Ext(telemetryDb, "Telemetry DB", "PostgreSQL", "Хранение телеметрических данных")
+    }
+    
+    Container_Boundary(notificationService, "NotificationService", "Java", "Сервис уведомлений") #319439 {
+        Component(notificationTypesComponent, "NotificationTypesComponent", "Java", "Типы уведомлений")
+        Component(notificationComponent, "NotificationComponent", "Java", "Уведомление")
+        Component(notificationBrokerComponent, "NotificationBrokerComponent", "Java", "Брокер сообщений (SMS/Email/Push/...)")
+        
+        Component_Ext(notificationBrokerSMSComponent, "NotificationBrokerSMSComponent", "Java", "Брокер сообщений SMS")
+        Component_Ext(notificationBrokerEMailComponent, "NotificationBrokerEMailComponent", "Java", "Брокер сообщений EMail")
+        Component_Ext(notificationBrokerPushComponent, "NotificationBrokerPushComponent", "Java", "Брокер сообщений Push")
+
+        ContainerDb_Ext(notificationDb, "Notification DB", "PostgreSQL", "Хранение истории уведомлений")
+    }
+    
+    Container_Boundary(identityService, "IdentityService", "Java", "Управление пользователями") #319439 {
+        ContainerDb_Ext(identityDb, "Identity DB", "PostgreSQL", "Хранение данных пользователей и ролей")
+        
+        Component(usersComponent, "UsersComponent", "Java", "Пользователи")
+        Component(rolesComponent, "RolesComponent", "Java", "Роли пользователей")
+        Component(profilesComponent, "ProfilesComponent", "Java", "Профили пользователей")
+    }
+
+    Container_Boundary(homesService, "HomesService", "Java", "Управление сценариями и домами") #319439 {
+        Component(homeComponent, "HomeComponent", "Java", "Дом")
+        Component(homeScenariosComponent, "HomeScenariosComponent", "Java", "Сценарии автоматизации")
+
+        ContainerDb_Ext(homesDb, "Homes DB", "PostgreSQL", "Хранит данные о пользователях c привязкой к домам, а также устройствах в доме")
+    }
+
+    Container_Boundary(supportService, "SupportService", "Java", "Сервис технической поддержки клиентов") #319439 {
+        Component(SupportTicketComponent, "SupportTicketComponent", "Java", "Сообщение тех.поддержки")
+
+        ContainerDb_Ext(supportDb, "Support DB", "PostgreSQL", "Запросы и консультации технической поддержки")
+    }
+
+    SystemQueue(kafka, "Kafka", "Брокер сообщений для асинхронного взаимодействия сервисов") #232227
+    
+    Container(redis, "Redis", "In-Memory Cache", "Кеширование данных и ускорение запросов") #DC382D
+}
+
+System_Ext(sensors, "Датчики и прочее оборудование")
+
+Rel(user, ui, "Взаимодействие через браузер (HTTPS)")
+Rel(ui, apiGateway, "Запросы к API")
+
+Rel(apiGateway, devicesService, "Команды устройствам")
+Rel(apiGateway, telemetryService, "Запрос телеметрических данных")
+Rel(apiGateway, identityService, "Аутентификация и авторизация пользователей")
+Rel(apiGateway, notificationService, "Запрос уведомлений пользователям")
+Rel(apiGateway, homesService, "Запрос домов пользователя")
+Rel(apiGateway, supportService, "Взаимодействие с технической поддержкой")
+Rel(apiGateway, redis, "Кеширование данных для уменьшения нагрузки")
+
+Rel(notificationService, kafka, "Подписка на уведомления")
+Rel(devicesService, kafka, "Отправка событий оборудования")
+Rel(telemetryService, kafka, "Отправка событий мониторинга и подписка на события оборудования")
+Rel(supportService, kafka, "Уведомления тех.поддержки")
+
+Rel(homesService, devicesService, "Список устройств пользователя и отправка команд")
+Rel(homesService, identityService, "Получает информацию о пользователях")
+
+Rel(deviceComponent, deviceDriverComponent, "Подписка и взаимодействие с устройством")
+
+'мы запрашиваем единицы измерений которые мы знаем и в которых планируем отображать результат
+Rel(deviceSettingsComponent, uomComponent, "Получение информации о единицах измерений")
+'тип устройств есть системный - которые мы знаем и можем обрабатывать, и есть фактический, он в настройках устройства
+Rel(deviceComponent, deviceTypesComponent, "Получение типа устройства и ссылки на нужный драйвер") 
+Rel(deviceSettingsComponent, deviceDriverComponent, "Чтение и применение настроек устройства")
+
+Rel(deviceDriverComponent, sensors, "Взаимодейтсвие с устройствами по стандартным протоколам")
+
+Rel(notificationBrokerComponent, notificationBrokerSMSComponent, "Отправка SMS сообщений")
+Rel(notificationBrokerComponent, notificationBrokerPushComponent, "Отправка Push сообщений")
+Rel(notificationBrokerComponent, notificationBrokerEMailComponent, "Отправка Email сообщений")
+
+Rel(timeSeriesComponent, telemetrySettingsComponent, "Получение информации о допустимых значениях")
+Rel(timeSeriesComponent, devicesService, "Подписка на данные реального времени")
+
+Rel(homeComponent, homeScenariosComponent, "Список сценариев для дома")
+
+Rel(usersComponent, rolesComponent, "Роль пользователя")
+Rel(usersComponent, profilesComponent, "Запрос профилей пользователя")
+
+@enduml

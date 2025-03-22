@@ -11,7 +11,9 @@ Person(support, "Сотрудник компании", "Тех.поддержк�
 
 Enterprise_Boundary(application, "Умный дом") {
     Container(FrontendContainer, "Веб приложение", "JavaScript/HTML")
-    Container(HeatingSystemServiceContainer, "Heating System Service", "Java")
+    System_Boundary(deviceSystem, "Управление отоплением") {
+        Container(HeatingSystemServiceContainer, "Инструменты управления отоплением и просмотра текущих параметров", "Java")
+    }
 }
 
 System_Ext(heatingDevices, "Отопительное оборудование", "Heating Device")
