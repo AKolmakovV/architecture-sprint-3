@@ -1,0 +1,175 @@
+@startuml
+
+title ER диаграмма
+
+
+entity Device {
+    id: UUID
+    --
+    homeId: UUID
+    name: String
+    connectionString: String // Для подключения нам потребуется драйвер, а строка определяет параметры
+    deviceTypeId: UUID // У каждого устройства есть тип, отвечающий за взаимодействие с устройством
+}
+
+entity DeviceType {
+    id: UUID // Идентификатор типа устройства
+    --
+    name: String // Название типа
+    category: String
+    description: String
+    driverId: UUID // Назначенный драйвер устройства
+}
+
+
+entity DeviceSettings {
+    id: UUID
+    --
+    deviceId: UUID
+}
+
+entity SettingField {
+    id: UUID
+    --
+    name: String
+    valueId: UUID
+    deviceSettingsId: UUID
+}
+
+entity Value {
+    id: UUID
+    --
+    name: String
+    value: String
+    uomId
+}
+
+entity UOM {
+    id: UUID
+    --
+    name: String
+}
+
+entity Driver {
+    id: UUID
+    --
+    name: String
+    ref: String // Ссылка на DLL либо сервис с реализацией конкретного драйвера
+}
+
+entity Home {
+    id: UUID
+    --
+    name: String
+    description: String
+    address: String
+}
+
+
+entity HomeUsers {
+    userId: UUID
+    homeId: UUID
+    isOwner: Boolean // Владелец
+    isMaster: Boolean // Создатель
+}
+
+
+entity HomeScenarios {
+    id: UUID
+    --
+    homeId: UUID
+    name: String
+    action: JSON // Некоторый сценарий автоматизации
+}
+
+entity User {
+    id: UUID
+    --
+    name : String
+    email : String
+    password : String
+    userProfileId : UUID
+}
+
+entity UserProfile {
+    id: UUID
+    --
+    realName: String
+    age: DateTime
+    photo: String
+    location: String
+}
+
+entity Role {
+    id: UUID
+    --
+    name: String
+    userId: UUID
+}
+
+entity Support {
+    id: UUID
+    --
+    created: DateTime
+    isClosed: Boolean
+    title: String
+    userId: UUID // Кто создал заявку
+}
+
+entity SupportMessage {
+    id: UUID
+    --
+    message: String // Сообщение
+    created: DateTime // Дата ответа
+    userId: UUID // Кто ответил в переписке
+}
+
+entity Telemetry {
+    id: UUID
+    --
+    telemetrySettingsId: UUID
+    deviceId: UUID
+    time: DateTime
+    eventMessage: String
+}
+
+entity TelemetrySettings {
+    id: UUID
+    --
+    telemetryId: UUID
+    settingsFieldId: UUID
+    settingsFieldName: String
+    value: String
+    uomId: String
+    uomName: String
+}
+
+
+DeviceType ||--|| Driver
+DeviceSettings ||--o{ SettingField
+Device ||--|| DeviceType
+SettingField ||--|| Value
+Value ||--|| UOM
+Home ||--o{ HomeScenarios
+User ||--|| UserProfile
+User ||--o{ Role
+Device ||--|| Home
+Device ||--|| DeviceSettings
+HomeUsers ||--|| User
+Home ||--o{ HomeUsers
+Support ||--|| User 
+Support ||--o{ SupportMessage
+SupportMessage ||--|| User
+
+' Устанавливаю слабую связь что бы показать, 
+' что это исторические данные - когда то они были связаны, 
+' но в текущий момент может не быть ни устройства ни дома, 
+' или устройство может переехать в другой дом
+Telemetry ||..|| Device : "Относится к (слабая связь)"
+Telemetry ||..|| Home
+Telemetry ||--o{ TelemetrySettings
+
+TelemetrySettings ||..|| UOM
+TelemetrySettings ||..|| Value
+TelemetrySettings ||..|| SettingField
+@enduml                     
