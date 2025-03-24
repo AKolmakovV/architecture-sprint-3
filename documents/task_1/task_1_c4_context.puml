@@ -1,0 +1,32 @@
+@startuml
+title Умный дом - монолитное решение
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+top to bottom direction
+
+Person(customer, "Пользователь")
+Person(support, "Сотрудник компании", "Тех.поддержка")
+
+Enterprise_Boundary(application, "Умный дом") {
+    Container(FrontendContainer, "Веб приложение", "JavaScript/HTML")
+    System_Boundary(deviceSystem, "Управление отоплением") {
+        Container(HeatingSystemServiceContainer, "Инструменты управления отоплением и просмотра текущих параметров", "Java")
+    }
+}
+
+System_Ext(heatingDevices, "Отопительное оборудование", "Heating Device")
+System_Ext(heatingSensor, "Температурный датчик", "Temperature Sensor")
+
+Rel(customer, FrontendContainer, "Просмотр и изменение параметров системы")
+Rel(support, application, "Настройка системы", "Подключение новых датчиков")
+Rel(FrontendContainer, HeatingSystemServiceContainer, "")
+
+Rel(HeatingSystemServiceContainer, heatingDevices, "", "")
+Rel(HeatingSystemServiceContainer, heatingSensor, "", "")
+
+@enduml
+
+
+

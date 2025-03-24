@@ -1,0 +1,126 @@
+@startuml
+title "С4 диаграмма кода - компонент: Devices"
+
+class DeviceController { 
+    + devices: List<IDeviceInterface> // Список устройств доступных пользователю
+
+    + get (): List<IDeviceInterface> // Получить все устройства пользователя с незаполненными Settings
+    + get (deviceId: String) // Получить информацию о конкретном устройстве пользователя с незаполненными Settings
+    + remove (deviceId: String): String // Возвращаем Status Code по итогу выполнения операции 
+    + create (name: String, deviceTypeId: String, connectionString: String ): String // Зарегистрировать новое устройство в системе, в ответе будет Status Code
+    + update (device: IDeviceInterface): String // Изменить параметры устройства, в ответе будет Status Code
+    + sendCommand (cmd: String): String // Отправка команды устройству
+
+    + subscribe (deviceId: String): string // Подписка на события устройства - не в настройках потому что события могут быть не только на изменение параметров
+    + unsubscribe (deviceId: String): string // Отписка от подписки на события устройства
+}
+
+interface IDeviceInterface {
+    + id
+    + name
+    + connectionString: String
+    + type: IDeviceType
+}
+
+class DeviceTypeController {
+    + types: List<IDeviceType> // Список поддерживаемых типов
+    + get(): List<IDeviceType> // Получить список всех поддерживаемых типов устройств
+    + update(deviceType: IDeviceType) // Изменяем тип устройства
+    + create(name: String, driverId: String) // Создаем тип устройства
+    + delete(deviceTypeId) // Удаляем тип устройства
+}
+
+interface IDeviceType {
+    + id // Идентификатор типа устройства
+    + name // Название типа
+    + driver: IDriver // Назначенный драйвер устройства
+}
+
+' Выделяем в отдельный контроллер так как тут располагаются очень дорогие операции, DeviceController работает без настроек
+class DeviceSettingsController { 
+    + getSettings(deviceId: String): IDeviceSettings // Получить текущие настройки
+    + updateSettings(deviceId: String, settings: IDeviceSettings): String // Так мы применяем настройки для устройства и сохраняем базу
+}
+
+interface IDeviceSettings {
+    + settings: List<ISettingField>
+}
+
+interface ISettingField {
+    + id: String
+    + name: String
+    + value: IValue
+}
+
+interface IValue {
+    + id: String
+    + name: String
+    + value: String
+    + uom: IUOM
+}
+
+class UOMController {
+    + uoms: List<IUOM> // Список всех поддерживаемых единиц измерения
+
+    + get(): List<IUOM>
+    + create(name: String): String
+    + delete(idUOM: String): String
+}
+
+interface IUOM {
+    + id: String
+    + name: String
+}
+
+class DriverFactory {
+    + drivers: List<Driver> 
+    + get(): List<Driver> // Возвращает список зарегистрированных драйверов
+    + get(driverId: string) // Получить конкретный драйвер по идентификатору
+    + resolve(type: DeviceType) // Получить нужный драйвер по типу устройства
+}
+
+interface IDriver {
+    + id
+    + name 
+
+    + connect()
+    + disconnect()
+    + subscribe()
+    + unsubscribe()
+
+    + sendCommand(cmd: String): String // отправляем команду, получаем статус от устройства
+    + updateSettings()
+    + loadSettings()
+}
+
+
+class Driver {
+    + id
+    + name 
+
+    + connect()
+    + disconnect()
+    + subscribe()
+    + unsubscribe()
+
+    + sendCommand(cmd: String): String // отправляем команду, получаем статус от устройства
+    + updateSettings()
+    + loadSettings()
+}
+
+DeviceController "1" -- "0..*" IDeviceInterface
+DeviceSettingsController ..> IDeviceSettings
+DeviceSettingsController ..>  DriverFactory
+DeviceTypeController "1" -- "0..*" IDeviceType
+IDeviceType "1" -- "1" IDriver
+DeviceController ..> DriverFactory 
+DriverFactory ..> IDeviceType 
+IDeviceSettings "1" -- "0..*" ISettingField
+IDeviceInterface "1" -- "1" IDeviceType
+ISettingField "1" -- "1" IValue
+DriverFactory "1" -- "0..*" Driver
+UOMController "1" -- "0..*" IUOM
+IValue "1" -- "1" IUOM
+IDriver ..|> Driver
+
+@enduml
