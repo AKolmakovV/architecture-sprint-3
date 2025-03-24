@@ -133,6 +133,7 @@ entity Telemetry {
     eventMessage: String
 }
 
+' Параметры устройства, в заданный telemetryId момент времени
 entity TelemetrySettings {
     id: UUID
     --
@@ -144,6 +145,32 @@ entity TelemetrySettings {
     uomName: String
 }
 
+entity Notifications {
+    id: UUID
+    --
+    notificationTypeId 
+    message: String
+    resolved: Boolean
+}
+
+' Типы уведомлений 
+entity NotificationType {
+    id: UUID
+    --
+    name: String
+}
+
+' Не усложняю, выполняем доставку всеми доступными способами
+entity NotificationBroker {
+    id: UUID
+    --
+    notificationId: UUID
+    remoteBrokerUrl: String
+    queryParams: String
+
+    login: String
+    password: String
+}
 
 DeviceType ||--|| Driver
 DeviceSettings ||--o{ SettingField
@@ -160,6 +187,8 @@ Home ||--o{ HomeUsers
 Support ||--|| User 
 Support ||--o{ SupportMessage
 SupportMessage ||--|| User
+Notifications ||--|| NotificationType
+Notifications ||--o{ NotificationBroker
 
 ' Устанавливаю слабую связь что бы показать, 
 ' что это исторические данные - когда то они были связаны, 
